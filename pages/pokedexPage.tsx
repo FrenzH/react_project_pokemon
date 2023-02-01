@@ -1,31 +1,50 @@
-import { QueryClient, QueryClientProvider, useQuery } from "react-query";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { use } from "react";
+import { useQuery, QueryClient,QueryClientProvider, } from "react-query";
+import Link from "next/link";
+
 const queryClient = new QueryClient();
+
+
 export default function App() {
   return (
+    
     <QueryClientProvider client={queryClient}>
-      <Example />
+      <RenderPokemon />
     </QueryClientProvider>
-  );
+  )
 }
 
-function Example() {
-  const { isLoading, error, data } = useQuery("pokemonData", getPokemonData);
-  if (isLoading) return "Loading...";
 
-  if (error) return "An error has occurred: " + error.message;
 
+
+
+
+
+interface Data {
+  url: string;
+  name: string;
+}
+
+const fetchData = async (): Promise<Data[]> => {
+  const response = await axios.get<Data[]>("https://pokeapi.co/api/v2/pokemon");
+  return response.data;
+};
+
+const RenderPokemon: React.FC = () => {
+  const { status, data, error } = useQuery<Data[], Error>("data", fetchData);
   return (
     <div>
-      {data.results.map((poke) => {
-        <li key={poke.url}>{poke.name}</li>;
-      })}
+      {status === "loading" && <div>Loading...</div>}
+      {status === "error" && <div>Error: {error.message}</div>}
+      {status === "success" && (
+        <div>
+          {data.results.map((item: Data) => (
+            <div key={item.url}><Link href={`./pokemon/${item.url.slice(34,35)}`}>{item.name}</Link></div>
+          ))}
+        </div>
+      )}
     </div>
   );
-}
+};
 
-async function getPokemonData() {
-  const response = await axios.get("https://pokeapi.co/api/v2/pokemon/1");
-  return response;
-}
